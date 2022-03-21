@@ -1,0 +1,19 @@
+{
+  "name": "pixiv-daily-rank-spider",
+  "version": "1.0.0",
+  "description": "基于nodejs的pixiv每日排行榜爬虫",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/coderFuYu/Pixiv-Daily-Rank-Spider.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/coderFuYu/Pixiv-Daily-Rank-Spider/issues"
+  },
+  "homepage": "https://github.com/coderFuYu/Pixiv-Daily-Rank-Spider#readme"
+}
