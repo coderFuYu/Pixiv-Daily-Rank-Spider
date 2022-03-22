@@ -15,5 +15,14 @@
   "bugs": {
     "url": "https://github.com/coderFuYu/Pixiv-Daily-Rank-Spider/issues"
   },
-  "homepage": "https://github.com/coderFuYu/Pixiv-Daily-Rank-Spider#readme"
+  "homepage": "https://github.com/coderFuYu/Pixiv-Daily-Rank-Spider#readme",
+  "dependencies": {
+    "ali-oss": "^6.17.1",
+    "axios": "^0.26.1",
+    "https": "^1.0.0",
+    "moment": "^2.29.1",
+    "mysql": "^2.18.1",
+    "node-schedule": "^2.1.0",
+    "nodemailer": "^6.7.3"
+  }
 }
