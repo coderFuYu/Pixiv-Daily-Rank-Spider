@@ -60,7 +60,7 @@ async function main() {
     else {
       await asyncSql(`INSERT INTO ${Config.dataBase.table}
                       VALUES ("${Date.now()}", "${timeString}", ${+index + 1}, "${array[index]}",
-                              "", "1")`)
+                              "${array[index]}", "1")`)
     }
   }
   //发送今日的排行榜至指定邮箱,如配置中为false则不执行
