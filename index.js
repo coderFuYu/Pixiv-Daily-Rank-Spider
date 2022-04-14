@@ -33,12 +33,18 @@ async function main() {
                                       WHERE url = "${array[index]}"`)
       //如果数据库中已有此图片则不重新上传,转至第一次上传时链接
       if (sqlResult.length > 0) {
-        await asyncSql(`INSERT INTO ${Config.dataBase.table}
+        //过滤掉当天重复提交的情况
+        if(sqlResult[sqlResult.length - 1].date !== timeString){
+          await asyncSql(`INSERT INTO ${Config.dataBase.table}
                         VALUES ("${Date.now()}", "${timeString}", ${+index + 1}, "${array[index]}",
                                 "${sqlResult[0].redirectUrl}", "0")`)
+        }
       }
       //如果此图为第一次上榜,则需上传至oss
-      else {
+      else  {
+        let random = Math.round(Math.random() * 5000) + 1000
+        await new Promise(resolve => setTimeout(resolve, random))
+        console.log('第' + (+index + 1) + '张开始')
         res = await axios.get(array[index], {
           headers: {
             Referer: 'https://www.pixiv.net/'
@@ -78,7 +84,7 @@ async function main() {
                                from ${Config.dataBase.table}
                                WHERE date = ${timeString}`)
     let emailHtml = ''
-    imgs.forEach(i => emailHtml += `<img src="${i.redirectUrl}" alt="图片"/>\n`)
+    imgs.forEach(i => emailHtml += `<h2>No.${+i+1}</h2><img src="${i.redirectUrl}" alt="图片"/>\n`)
     await transporter.sendMail({
       from: `今日pixiv排行榜鉴赏<${Config.email.senderAddress}>`, // sender address
       to: Config.email.receiveAddress, // list of receivers
