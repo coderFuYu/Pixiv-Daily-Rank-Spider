@@ -84,7 +84,7 @@ async function main() {
                                from ${Config.dataBase.table}
                                WHERE date = ${timeString}`)
     let emailHtml = ''
-    imgs.forEach(i => emailHtml += `<h2>No.${+i+1}</h2><img src="${i.redirectUrl}" alt="图片"/>\n`)
+    imgs.forEach(i => emailHtml += `<h2>No.${+i.rank}</h2><img src="${i.redirectUrl}" alt="图片"/>\n`)
     await transporter.sendMail({
       from: `今日pixiv排行榜鉴赏<${Config.email.senderAddress}>`, // sender address
       to: Config.email.receiveAddress, // list of receivers
