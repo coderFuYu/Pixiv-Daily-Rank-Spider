@@ -45,6 +45,7 @@ async function main () {
   array = array.map(i => i.replace('c/240x480', ''))
   //逐条判断排行榜中图片是否存在数据库中,如果存在只更新到数据库,如不存在则先上传到oss再更新至数据库
   for (let index in array) {
+    let errTimes = 0
     //需要上传至oss
     if (Config.OSS.uploadToOSSFlag) {
       let sqlResult = await asyncSql(`SELECT *
@@ -79,11 +80,13 @@ async function main () {
           }).catch(async (err) => {
             console.log(err)
             count = 0
+            errTimes ++
             await selectNode(ipPool[ipIndex].name)
             await sleep(5000)
             ipIndex = (ipIndex + 1) % ipPool.length
             return Promise.resolve()
           })
+          if(errTimes>10)break
         }
         let arraybuffer = res
         let temp = array[index].split('.')
