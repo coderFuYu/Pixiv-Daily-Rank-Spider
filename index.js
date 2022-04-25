@@ -3,24 +3,43 @@ const oss = require('ali-oss');
 const moment = require('moment');
 const mysql = require('mysql');
 const schedule = require("node-schedule")
-
-const Config = require('./config')
-const client = oss(Config.OSS);
 const nodemailer = require("nodemailer")
 
+const Config = require('./config')
+const { readIpPool, getIpPool, sleep, selectNode } = require('./ip-pool')
+const client = oss(Config.OSS);
 
-async function main() {
+//主函数
+async function main () {
   //获取当天日期字符串
   let timeString = moment().format('YYYYMMDD')
   console.log(timeString)
   //初始化数据库
   let connection = mysql.createConnection(Config.dataBase);
   connection.connect();
-  //获取排行榜html文件
-  let res = await axios.get('https://www.pixiv.net/ranking.php?mode=daily', {
-    proxy: Config.proxy
+  let ipIndex = 0
+  let count = 0
+  //获取ip池
+  let ipPool = null
+  ipPool = await readIpPool().catch(async err => {
+    await getIpPool()
+    return readIpPool()
   })
-  let html = res.data
+  ipPool = JSON.parse(ipPool)
+
+  //获取排行榜html文件
+  await selectNode(ipPool[ipIndex++].name)
+
+  let res = null
+  while (!res) {
+    res = await axios.get('https://www.pixiv.net/ranking.php?mode=daily').catch(async (err) => {
+      console.log(err)
+      await selectNode(ipPool[ipIndex].name)
+      await sleep(5000)
+      ipIndex = (ipIndex + 1) % ipPool.length
+    })
+  }
+  let html = res
   //匹配排行榜链接
   let array = html.match(/https:\/\/i\.pximg\.net\/c\/.+?\.(png|jpg)/g)
   array = array.map(i => i.replace('c/240x480', ''))
@@ -34,25 +53,39 @@ async function main() {
       //如果数据库中已有此图片则不重新上传,转至第一次上传时链接
       if (sqlResult.length > 0) {
         //过滤掉当天重复提交的情况
-        if(sqlResult[sqlResult.length - 1].date !== timeString){
+        if (sqlResult[sqlResult.length - 1].date !== timeString) {
           await asyncSql(`INSERT INTO ${Config.dataBase.table}
                         VALUES ("${Date.now()}", "${timeString}", ${+index + 1}, "${array[index]}",
                                 "${sqlResult[0].redirectUrl}", "0")`)
         }
       }
       //如果此图为第一次上榜,则需上传至oss
-      else  {
-        let random = Math.round(Math.random() * 5000) + 1000
-        await new Promise(resolve => setTimeout(resolve, random))
+      else {
         console.log('第' + (+index + 1) + '张开始')
-        res = await axios.get(array[index], {
-          headers: {
-            Referer: 'https://www.pixiv.net/'
-          },
-          proxy: Config.proxy,
-          responseType: 'arraybuffer'
-        })
-        let arraybuffer = res.data
+        count++
+        if (count >= 5) {
+          await selectNode(ipPool[ipIndex++].name)
+          await sleep(5000)
+          ipIndex = (ipIndex + 1) % ipPool.length
+          count = 0
+        }
+        res = null
+        while (!res) {
+          res = await axios.get(array[index], {
+            headers: {
+              Referer: 'https://www.pixiv.net/'
+            },
+            responseType: 'arraybuffer'
+          }).catch(async (err) => {
+            console.log(err)
+            count = 0
+            await selectNode(ipPool[ipIndex].name)
+            await sleep(5000)
+            ipIndex = (ipIndex + 1) % ipPool.length
+            return Promise.resolve()
+          })
+        }
+        let arraybuffer = res
         let temp = array[index].split('.')
         let Extension = temp[temp.length - 1]
         let path = `${timeString + String(+index + 1).padStart(2, '0')}.${Extension}`
@@ -95,7 +128,7 @@ async function main() {
   //关闭数据库连接
   connection.end();
 
-  function asyncSql(sql) {
+  function asyncSql (sql) {
     return new Promise(resolve => {
       connection.query(sql, (err, result) => {
         if (err) throw err
@@ -110,8 +143,9 @@ if (Config.dailyRun.dailyFlag) {
   schedule.scheduleJob(`0 ${Config.dailyRun.minute} ${Config.dailyRun.hour} * * *`, async () => {
     await main()
   })
+  schedule.scheduleJob('0 0 1 * * 1', async () => {
+    await getIpPool()
+  })
 } else {
   main()
 }
-
-

@@ -2,3 +2,4 @@
 node_modules/
 yarn.lock
 config-myself.js
+ip-pool/clash-node.txt
