@@ -6,8 +6,12 @@ const schedule = require("node-schedule")
 const nodemailer = require("nodemailer")
 
 const Config = require('./config')
-const { readIpPool, getIpPool, sleep, selectNode } = require('./ip-pool')
 const client = oss(Config.OSS);
+
+//睡眠函数
+function sleep (time) {
+  return new Promise(resolve => setTimeout(resolve, time))
+}
 
 //主函数
 async function main () {
@@ -17,26 +21,12 @@ async function main () {
   //初始化数据库
   let connection = mysql.createConnection(Config.dataBase);
   connection.connect();
-  let ipIndex = 0
-  let count = 0
-  //获取ip池
-  let ipPool = null
-  ipPool = await readIpPool().catch(async err => {
-    await getIpPool()
-    return readIpPool()
-  })
-  ipPool = JSON.parse(ipPool)
-
-  //获取排行榜html文件
-  await selectNode(ipPool[ipIndex++].name)
 
   let res = null
   while (!res) {
     res = await axios.get('https://www.pixiv.net/ranking.php?mode=daily').catch(async (err) => {
       console.log(err)
-      await selectNode(ipPool[ipIndex].name)
       await sleep(5000)
-      ipIndex = (ipIndex + 1) % ipPool.length
     })
   }
   let html = res
@@ -56,37 +46,29 @@ async function main () {
         //过滤掉当天重复提交的情况
         if (sqlResult[sqlResult.length - 1].date !== timeString) {
           await asyncSql(`INSERT INTO ${Config.dataBase.table}
-                        VALUES ("${Date.now()}", "${timeString}", ${+index + 1}, "${array[index]}",
-                                "${sqlResult[0].redirectUrl}", "0")`)
+                          VALUES ("${Date.now()}", "${timeString}", ${+index + 1}, "${array[index]}",
+                                  "${sqlResult[0].redirectUrl}", "0")`)
         }
       }
       //如果此图为第一次上榜,则需上传至oss
       else {
         console.log('第' + (+index + 1) + '张开始')
-        count++
-        if (count >= 5) {
-          await selectNode(ipPool[ipIndex++].name)
-          await sleep(5000)
-          ipIndex = (ipIndex + 1) % ipPool.length
-          count = 0
-        }
         res = null
         while (!res) {
           res = await axios.get(array[index], {
             headers: {
-              Referer: 'https://www.pixiv.net/'
+              Referer: 'https://www.pixiv.net/',
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36 Edg/105.0.1343.42'
             },
+            proxy: Config.proxy,
             responseType: 'arraybuffer'
           }).catch(async (err) => {
             console.log(err)
-            count = 0
-            errTimes ++
-            await selectNode(ipPool[ipIndex].name)
+            errTimes++
             await sleep(5000)
-            ipIndex = (ipIndex + 1) % ipPool.length
             return Promise.resolve()
           })
-          if(errTimes>10)break
+          if (errTimes > 10) break
         }
         let arraybuffer = res
         let temp = array[index].split('.')
@@ -145,9 +127,6 @@ async function main () {
 if (Config.dailyRun.dailyFlag) {
   schedule.scheduleJob(`0 ${Config.dailyRun.minute} ${Config.dailyRun.hour} * * *`, async () => {
     await main()
-  })
-  schedule.scheduleJob('0 0 1 * * 1', async () => {
-    await getIpPool()
   })
 } else {
   main()
