@@ -8,6 +8,19 @@ const nodemailer = require("nodemailer")
 const Config = require('./config')
 const client = oss(Config.OSS);
 
+
+axios.defaults.timeout = 5000
+
+axios.interceptors.response.use((response) => {
+  if (response.status === 204) {
+    return Promise.resolve({ status: 'successful' })
+  } else if (!response.data) {
+    return Promise.reject(response)
+  } else {
+    return Promise.resolve(response.data)
+  }
+})
+
 //睡眠函数
 function sleep (time) {
   return new Promise(resolve => setTimeout(resolve, time))
@@ -24,7 +37,9 @@ async function main () {
 
   let res = null
   while (!res) {
-    res = await axios.get('https://www.pixiv.net/ranking.php?mode=daily').catch(async (err) => {
+    res = await axios.get('https://www.pixiv.net/ranking.php?mode=daily', {
+      proxy: Config.proxy
+    }).catch(async (err) => {
       console.log(err)
       await sleep(5000)
     })
