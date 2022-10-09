@@ -6,7 +6,7 @@ const schedule = require("node-schedule")
 const nodemailer = require("nodemailer")
 
 const Config = require('./config')
-const client = oss(Config.OSS);
+const client = Config.OSS.uploadToOSSFlag && oss(Config.OSS);
 
 
 axios.defaults.timeout = 5000
