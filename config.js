@@ -1,7 +1,7 @@
 module.exports = {
   proxy: {//clash服务器配置(pixiv国内ip禁止访问)
-    host: '127.0.0.1',
-    port: 7890
+    host: '127.0.0.1',//代理服务器地址(必填)
+    port: 7890,//代理服务器端口(必填)
   },
   dailyRun: {//每天启动配置
     dailyFlag: false,//false为单次运行,true为每日定时执行
