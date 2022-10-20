@@ -4,7 +4,8 @@
   "description": "基于nodejs的pixiv每日排行榜爬虫",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js",
+    "prettier": "prettier -c --write \"*.js\""
   },
   "repository": {
     "type": "git",
@@ -23,6 +24,7 @@
     "moment": "^2.29.1",
     "mysql": "^2.18.1",
     "node-schedule": "^2.1.0",
-    "nodemailer": "^6.7.3"
+    "nodemailer": "^6.7.3",
+    "prettier": "^2.7.1"
   }
 }
